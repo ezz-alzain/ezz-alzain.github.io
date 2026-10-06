@@ -112,9 +112,11 @@ css.textContent=[
  /* site 1 */
  'html[dir=rtl] .hero-name{direction:ltr}',
  'html[dir=rtl] .marq,html[dir=rtl] .logos{direction:ltr}',
+ 'html[lang=ar] .row.now .t::after,html[lang=ar] .stop.now .t::after,html[lang=ar] .rw.now h4::after{content:"الآن"}',
  'html[dir=rtl] .row:hover{padding-left:0;padding-right:14px;background:linear-gradient(270deg,rgba(242,162,12,.08),transparent)}',
  'html[dir=rtl] .reel .tag{left:auto;right:16px}',
  'html[dir=rtl] .reel .snd{right:auto;left:16px}',
+ '@media (max-width:860px){html[dir=rtl] .reel .snd{left:14px;right:auto}html[dir=rtl] .reel .tag{right:14px;left:auto}}',
  'html[dir=rtl] .hero-info p{text-align:right}',
  /* site 2 */
  'html[dir=rtl] .hero-t{left:auto;right:var(--pad);text-align:right}',
@@ -127,6 +129,7 @@ css.textContent=[
  'html[dir=rtl] .stop::before{left:auto;right:calc(clamp(26px,5vw,70px)*-1 + 2px)}',
  'html[dir=rtl] .ai .reel .snd{left:22px}',
  'html[dir=rtl] .hero-t .top{flex-direction:row-reverse;justify-content:flex-end}',
+ 'html[lang=ar] .contact h2 span{-webkit-text-stroke:0!important;color:var(--ac)!important;display:block}',
  /* pdf */
  'html[lang=ar] .cover h1 span{font-family:Anton,Impact,sans-serif!important;font-weight:400!important;text-transform:uppercase!important;line-height:.92!important}',
  'html[lang=ar] .pg .row{padding:1.3mm 0}',
@@ -134,7 +137,7 @@ css.textContent=[
  'html[lang=ar] .pg .era{margin:3.4mm 0 .6mm}',
  'html[dir=rtl] .cover .sum{direction:rtl;text-align:right}',
  'html[dir=rtl] .cover .now,html[dir=rtl] .cover .nowbar{direction:rtl}',
- '@media (max-width:860px){html[dir=rtl] .hero-t{left:var(--pad)}html[dir=rtl] .hero-t ~ .portrait{left:50%;right:auto;transform:translateX(-50%)}}'
+ '@media (max-width:860px){html[dir=rtl] .hero-t{left:auto;right:auto;text-align:right}html[dir=rtl] .hero-t ~ .portrait{left:auto;right:auto;transform:none}html[dir=rtl] .ai .reel .snd{left:50%;right:auto}}'
 ].join('\n');
 document.head.appendChild(css);
 
@@ -182,6 +185,10 @@ try{ var q=new URLSearchParams(location.search).get('lang'); want=q||localStorag
 if(want==='ar')apply('ar');
 window.__applyLang=apply;
 })();
+
+
+
+
 
 
 
