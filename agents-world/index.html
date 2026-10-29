@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>عالم الوكلاء</title>
+<style>
+:root{
+  --bg:#0f1220;--panel:#171b2e;--panel2:#1d2238;--ink:#e9ecf7;--muted:#8a91b0;--line:#262c48;--accent:#7c9cff;--ok:#5fd39a;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){--bg:#f4f5fa;--panel:#fff;--panel2:#f0f2f9;--ink:#1b1f33;--muted:#60678a;--line:#dde1ef;--accent:#3b5bdb;--ok:#2f9e6a}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,"Segoe UI",Tahoma,sans-serif;line-height:1.6;min-height:100vh}
+header{padding:24px 16px 8px;max-width:1100px;margin:auto}
+h1{margin:0;font-size:1.6rem}
+header p{margin:4px 0 0;color:var(--muted)}
+main{max-width:1100px;margin:auto;padding:16px}
+
+.city{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.building{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;cursor:pointer;transition:transform .15s,border-color .15s;text-align:right;color:inherit;font:inherit;width:100%}
+.building:hover,.building:focus-visible{transform:translateY(-3px);border-color:var(--accent);outline:none}
+.building.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.facade{height:130px;border-radius:12px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:3.2rem;margin-bottom:12px}
+.family .facade{background:linear-gradient(180deg,#f7d9a8,#e7b27a)}
+.studio .facade{background:radial-gradient(circle at 20% 30%,#ff8fab 0 14px,transparent 15px),radial-gradient(circle at 70% 60%,#7bd3ff 0 18px,transparent 19px),linear-gradient(135deg,#2b2750,#4a2c5e)}
+.lab .facade{background:repeating-linear-gradient(0deg,#141a2e 0 10px,#1c2440 10px 12px)}
+.lab .facade::after{content:"";position:absolute;inset:0;background:radial-gradient(circle,#5fd39a 0 2px,transparent 3px) 0 0/22px 14px;opacity:.5;animation:blink 2.4s infinite}
+@keyframes blink{50%{opacity:.15}}
+.building h2{margin:0 0 2px;font-size:1.1rem}
+.building small{color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:.85rem;transition:box-shadow .2s}
+.chip.speaking{box-shadow:0 0 0 3px var(--ok);animation:pulse 1s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 6px transparent}}
+
+.room{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;display:none}
+.room.show{display:block}
+.room-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.room-head h2{margin:0;font-size:1.2rem}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button.btn{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer;font:inherit}
+button.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.btn:disabled{opacity:.5;cursor:default}
+.feed{height:380px;overflow-y:auto;background:var(--panel2);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:85%;padding:8px 12px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
+.msg.user{align-self:flex-start;background:var(--accent);color:#fff;border-color:var(--accent)}
+.msg .who{font-size:.8rem;color:var(--muted);margin-bottom:2px}
+.msg.user .who{color:#e6ecff}
+.msg .text{white-space:pre-wrap}
+.empty{color:var(--muted);text-align:center;margin:auto}
+.composer{display:flex;gap:8px;margin-top:10px}
+.composer textarea{flex:1;resize:vertical;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);padding:10px;font:inherit}
+.status{font-size:.85rem;color:var(--muted);margin-top:8px;min-height:1.2em}
+</style>
+</head>
+<body>
+<header>
+  <h1>عالم الوكلاء</h1>
+  <p>ثلاث أماكن، وكل مكان فيه وكلاء يتناقشون ويطوّرون الحديث. اختر مبنى للدخول.</p>
+</header>
+
+<main>
+  <section class="city" id="city" aria-label="المباني"></section>
+
+  <section class="room" id="room" aria-live="polite">
+    <div class="room-head">
+      <h2 id="roomTitle"></h2>
+      <div class="btns">
+        <button class="btn" id="discussBtn">خلّهم يتناقشون</button>
+        <button class="btn" id="stopBtn" disabled>إيقاف</button>
+        <button class="btn" id="clearBtn">مسح المحادثة</button>
+      </div>
+    </div>
+    <div class="feed" id="feed"></div>
+    <div class="composer">
+      <textarea id="input" rows="2" placeholder="اكتب لهذا المكان... (Ctrl+Enter للإرسال)"></textarea>
+      <button class="btn primary" id="sendBtn">إرسال</button>
+    </div>
+    <div class="status" id="status"></div>
+  </section>
+</main>
+
+<script>
+// ============ الإعدادات ============
+const CONFIG = {
+  // لربط الوكلاء بنموذج حقيقي، ضع هنا رابط خادم وسيط (proxy) يحفظ مفتاح API عنده.
+  // لا تضع مفتاح API داخل هذه الصفحة لأنها عامة.
+  // العقد: POST { room, agent, messages } ← يرجّع JSON فيه الحقل text
+  endpoint: '',
+  discussRounds: 6,
+  turnDelayMs: 1200,
+  storageKey: 'agents-world-v1',
+};
+
+// ============ المباني والوكلاء ============
+const ROOMS = {
+  family: {
+    key: 'family', name: 'بيت العائلة', icon: '🏠', cls: 'family',
+    desc: 'المكان اللي تحكي فيه عن تفاصيل العائلة. الوكلاء هنا يسمعون ويرتّبون ويقترحون.',
+    agents: [
+      { id: 'guide', name: 'الموجّه', icon: '🧭',
+        prompt: 'تدير النقاش بين الوكلاء، تلخص الفكرة وتوجّه السؤال الصحيح. ردودك قصيرة.',
+        canned: ['خلنا نرتب الفكرة: وش أهم شي تبغى يصير؟', 'لخّص لنا: الموضوع يخص مين بالضبط؟', 'اقتراح: نقسم المشكلة لثلاث نقاط ونبدأ بالأسهل.'] },
+      { id: 'listener', name: 'المستمع', icon: '💛',
+        prompt: 'تركّز على المشاعر والعلاقات، وتقترح طريقة لطيفة للتعامل مع الموقف. لا تحكم على أحد.',
+        canned: ['واضح إن فيه ضغط. تبغى حل سريع ولا مساحة تفضفض فيها؟', 'لا تستعجل في القرار، والكلام الهادي يخفف الحمل.', 'ممكن نسأل كل طرف عن احتياجه قبل أي حل.'] },
+      { id: 'organizer', name: 'المنظّم', icon: '📋',
+        prompt: 'تحوّل الأفكار إلى خطوات ومواعيد ومسؤوليات واضحة.',
+        canned: ['خطة مبدئية: ١) نجمع المعلومات ٢) نتفق على موعد ٣) نراجع بعد أسبوع.', 'أقترح جدول بسيط للاجتماع العائلي الشهري.', 'لازم نعرف مين مسؤول عن كل خطوة.'] },
+    ],
+  },
+  studio: {
+    key: 'studio', name: 'الاستوديو', icon: '🎨', cls: 'studio',
+    desc: 'مكان التصوّر: أفكار بصرية، ألوان، سيناريو، ولقطات. الوكلاء يشتغلون على الصورة والحكاية.',
+    agents: [
+      { id: 'designer', name: 'المصمّم', icon: '🎨',
+        prompt: 'تقترح الألوان والتكوين والأسلوب البصري للفكرة.',
+        canned: ['أقترح لوحة ألوان دافئة مع لمسة زرقاء للتباين.', 'التكوين: الشخصية في الثلث الأيسر والضوء من الخلف.', 'أسلوب سينمائي هادئ يناسب المشهد أكثر من الكارتون.'] },
+      { id: 'writer', name: 'الكاتب', icon: '✍️',
+        prompt: 'تكتب الفكرة والحوار والنص في جمل قصيرة وواضحة.',
+        canned: ['الفكرة الأساسية: شخص يكتشف شيء صغير يغيّر يومه.', 'نبدأ بمشهد هادئ ثم نكسر التوقع في الدقيقة الثانية.', 'اقتراح عنوان: «لحظة واحدة قبل الصباح».'] },
+      { id: 'director', name: 'المخرج', icon: '🎬',
+        prompt: 'تحوّل الفكرة إلى لقطات واضحة ووصف دقيق لكل مشهد.',
+        canned: ['لقطة ١: واسعة للمكان. لقطة ٢: قريبة للوجه. لقطة ٣: حركة كاميرا بطيئة.', 'الإيقاع: مشهدين بطيئين ثم قطع سريع.', 'نحتاج نحدد الزاوية قبل ما نكتب البرومبت النهائي.'] },
+    ],
+  },
+  lab: {
+    key: 'lab', name: 'غرفة السيرفرات', icon: '🖥️', cls: 'lab',
+    desc: 'مكان التقنية: حلول، كود، تحليل، ومراجعة. الوكلاء هنا يبحثون عن الحل ويتأكدون منه.',
+    agents: [
+      { id: 'engineer', name: 'المهندس', icon: '🛠️',
+        prompt: 'تقترح حلول تقنية عملية وتكتب خطوات التنفيذ.',
+        canned: ['أقترح نبدأ بنسخة بسيطة تشتغل ثم نوسّعها.', 'الحل المقترح: فصل الواجهة عن منطق الوكلاء عبر API واحد.', 'نحتاج نعرف وين المشكلة بالضبط: الإدخال أو المعالجة أو الإخراج؟'] },
+      { id: 'analyst', name: 'المحلل', icon: '🔍',
+        prompt: 'تحلل المشكلة وتقارن الخيارات بالأرقام والأسباب.',
+        canned: ['المقارنة: الحل الأول أسرع لكن أقل مرونة.', 'السبب المحتمل الأول هو تكرار الطلبات بدون تخزين.', 'قبل ما نقرر، نقيس الوقت الحالي ونقارن بعده.'] },
+      { id: 'guard', name: 'المراجع', icon: '🛡️',
+        prompt: 'تراجع الحلول وتدور على الأخطاء والثغرات والمخاطر الأمنية.',
+        canned: ['ملاحظة أمنية: لا تخزن المفاتيح في الواجهة الأمامية.', 'اختبار مقترح: نجرب حالة الإدخال الفارغ والطويل.', 'الحل مقبول مع شرط واحد: تسجيل الأخطاء قبل الإخراج.'] },
+    ],
+  },
+};
+
+// ============ الحالة والتخزين ============
+const store = loadStore();
+let current = null;     // المفتاح الحالي للمكان
+let running = false;
+let stopRequested = false;
+
+function loadStore() {
+  const empty = { family: { messages: [] }, studio: { messages: [] }, lab: { messages: [] } };
+  try {
+    const saved = JSON.parse(localStorage.getItem(CONFIG.storageKey));
+    return saved && typeof saved === 'object' ? { ...empty, ...saved } : empty;
+  } catch (e) {
+    return empty;   // التخزين المحلي قد يكون محجوباً، ولا نكسر الصفحة
+  }
+}
+
+function save() {
+  try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(store)); } catch (e) { /* تجاهل */ }
+}
+
+// ============ الرسم ============
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function renderCity() {
+  const city = $('city');
+  city.textContent = '';
+  for (const room of Object.values(ROOMS)) {
+    const btn = document.createElement('button');
+    btn.className = `building ${room.cls}` + (room.key === current ? ' active' : '');
+    btn.dataset.room = room.key;
+
+    const facade = document.createElement('div');
+    facade.className = 'facade';
+    facade.textContent = room.icon;
+
+    const h = document.createElement('h2');
+    h.textContent = room.name;
+
+    const small = document.createElement('small');
+    small.textContent = `${room.desc.slice(0, 70)}… · ${store[room.key].messages.length} رسالة`;
+
+    const chips = document.createElement('div');
+    chips.className = 'chips';
+    for (const a of room.agents) {
+      const c = document.createElement('span');
+      c.className = 'chip';
+      c.dataset.agent = a.id;
+      c.textContent = `${a.icon} ${a.name}`;
+      chips.appendChild(c);
+    }
+
+    btn.append(facade, h, small, chips);
+    btn.addEventListener('click', () => openRoom(room.key));
+    city.appendChild(btn);
+  }
+}
+
+function openRoom(key) {
+  if (running && current !== key) stopDiscussion();
+  current = key;
+  const room = ROOMS[key];
+  $('room').classList.add('show');
+  $('roomTitle').textContent = `${room.icon} ${room.name}`;
+  $('status').textContent = room.desc;
+  renderCity();
+  renderFeed();
+  $('room').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderFeed() {
+  const feed = $('feed');
+  feed.textContent = '';
+  const messages = store[current].messages;
+  if (!messages.length) {
+    const e = document.createElement('div');
+    e.className = 'empty';
+    e.textContent = 'ابدأ بكتابة شي، أو اضغط «خلّهم يتناقشون».';
+    feed.appendChild(e);
+    return;
+  }
+  for (const m of messages) {
+    const box = document.createElement('div');
+    box.className = 'msg' + (m.kind === 'user' ? ' user' : '');
+    const who = document.createElement('div');
+    who.className = 'who';
+    who.textContent = m.kind === 'user' ? 'أنت' : `${m.icon} ${m.who}`;
+    const text = document.createElement('div');
+    text.className = 'text';
+    text.textContent = m.text;
+    box.append(who, text);
+    feed.appendChild(box);
+  }
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function setSpeaking(agentId) {
+  document.querySelectorAll('.chip').forEach((c) => {
+    c.classList.toggle('speaking', c.dataset.agent === agentId);
+  });
+}
+
+function updateButtons() {
+  $('discussBtn').disabled = running;
+  $('sendBtn').disabled = running;
+  $('stopBtn').disabled = !running;
+}
+
+// ============ الوكلاء ============
+function lastUserText(state) {
+  for (let i = state.messages.length - 1; i >= 0; i--) {
+    if (state.messages[i].kind === 'user') return state.messages[i].text;
+  }
+  return '';
+}
+
+function mockReply(agent, userText, turn) {
+  const snippet = userText ? userText.slice(0, 40) : 'الموضوع';
+  const line = agent.canned[turn % agent.canned.length];
+  return `بخصوص «${snippet}»: ${line}`;
+}
+
+async function askModel(room, agent, messages) {
+  if (!CONFIG.endpoint) return null;
+  const res = await fetch(CONFIG.endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      room: room.key,
+      agent: { id: agent.id, name: agent.name, prompt: agent.prompt },
+      messages: messages.slice(-20).map((m) => ({
+        role: m.kind === 'user' ? 'user' : 'assistant',
+        content: `${m.who}: ${m.text}`,
+      })),
+    }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  return typeof data.text === 'string' ? data.text : null;
+}
+
+async function speak(room, agent, turn) {
+  const state = store[room.key];
+  setSpeaking(agent.id);
+  $('status').textContent = `${agent.icon} ${agent.name} يفكر…`;
+
+  let text = null;
+  try {
+    text = await askModel(room, agent, state.messages);
+  } catch (e) {
+    $('status').textContent = 'تعذّر الوصول للنموذج، أستخدم الردود المحلية.';
+  }
+  if (!text) text = mockReply(agent, lastUserText(state), turn);
+
+  state.messages.push({ kind: 'agent', who: agent.name, icon: agent.icon, text, ts: Date.now() });
+  save();
+  setSpeaking(null);
+  if (current === room.key) renderFeed();
+  renderCity();
+}
+
+async function discuss(rounds) {
+  if (running) return;
+  const room = ROOMS[current];
+  running = true;
+  stopRequested = false;
+  updateButtons();
+
+  for (let i = 0; i < rounds && !stopRequested && current === room.key; i++) {
+    await speak(room, room.agents[i % room.agents.length], i);
+    if (i < rounds - 1) await sleep(CONFIG.turnDelayMs);
+  }
+
+  running = false;
+  setSpeaking(null);
+  updateButtons();
+  if (current === room.key) $('status').textContent = room.desc;
+}
+
+function stopDiscussion() {
+  stopRequested = true;
+}
+
+// ============ أحداث الواجهة ============
+$('sendBtn').addEventListener('click', () => {
+  const text = $('input').value.trim();
+  if (!current || !text || running) return;
+  store[current].messages.push({ kind: 'user', who: 'أنت', text, ts: Date.now() });
+  save();
+  $('input').value = '';
+  renderFeed();
+  discuss(ROOMS[current].agents.length);   // كل وكيل يرد مرة
+});
+
+$('input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.ctrlKey) $('sendBtn').click();
+});
+
+$('discussBtn').addEventListener('click', () => {
+  if (current) discuss(CONFIG.discussRounds);
+});
+
+$('stopBtn').addEventListener('click', stopDiscussion);
+
+$('clearBtn').addEventListener('click', () => {
+  if (!current || running) return;
+  store[current].messages = [];
+  save();
+  renderFeed();
+  renderCity();
+});
+
+// ============ البداية ============
+renderCity();
+updateButtons();
+</script>
+</body>
+</html>
